@@ -4,8 +4,8 @@ Status: `todo` / `doing` / `done`. Updated every session.
 
 | # | Phase | Output | Status |
 | --- | --- | --- | --- |
-| 0 | Recon: chip ID, collect official drivers, open-source references, WoR driver status | `docs/SOURCES.md`, CI inventory artifact | doing |
-| 1 | Static RE of the official x86 driver (Ghidra via `rea`): INF, USB endpoints, init sequence, firmware blob, TX/RX descriptors | `docs/re/` notes + extracted tables | todo |
+| 0 | Recon: chip ID, collect official drivers, open-source references, WoR driver status | `vendor/`, `docs/re/00-official-driver-recon.md` | done |
+| 1 | Static RE of the official driver (radare2/Ghidra, `rea`): INF, USB endpoints, init sequence, firmware blob, TX/RX descriptors | `docs/re/` notes + extracted tables | doing |
 | 2 | Cross-reference with Linux drivers (rtl8xxxu / aircrack-ng rtl8188eus): register map, EFUSE, firmware load, rate table | `docs/hw/rtl8188eus.md` | todo |
 | 3 | Golden trace: Wireshark USBPcap on the NUC while the official driver initializes and connects | `traces/*.pcapng` + analysis | todo |
 | 4 | ARM64 driver skeleton on CI (WDK, KMDF + WiFiCx), loads on the Pi in test mode, USB device attach, EFUSE/MAC read | signed test build | todo |
