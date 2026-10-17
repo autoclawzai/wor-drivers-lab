@@ -3,10 +3,8 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - scripts/**
+      - scripts/phase0_inventory.sh
       - .github/workflows/phase0-inventory.yml
-permissions:
-  contents: write
 permissions:
   contents: write
 jobs:
@@ -40,19 +38,6 @@ jobs:
           d = json.load(open("out/win/inventory.json"))
           json.dump({"inf": d["inf"], "pe": d["pe"]}, open("results/phase0/win_inventory.json", "w"), indent=1)
           PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add results
-          git commit -m "ci: phase0 inventory results" || echo "nothing to commit"
-          git pull --rebase origin main
-          git push origin HEAD:main
-      - name: Commit results (artifact/log download is blocked in the sandbox)
-        run: |
-          mkdir -p results/phase0
-          cp out/SUMMARY.md out/zip_sha256.txt out/aircrack_tplink_refs.txt results/phase0/
-          cp out/win/inventory.md results/phase0/win_inventory.md
-          cp out/linux/inventory.md results/phase0/linux_inventory.md
-          cp out/win/inventory.json results/phase0/win_inventory.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add results

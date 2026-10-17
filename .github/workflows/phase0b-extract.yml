@@ -1,0 +1,34 @@
+name: phase0b-extract
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/phase0b_extract.sh
+      - .github/workflows/phase0b-extract.yml
+permissions:
+  contents: write
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full unzip unshield cabextract
+          python3 -m pip install --quiet pefile
+      - name: Extract driver
+        run: bash scripts/phase0b_extract.sh
+      - name: Commit results (sandbox cannot reach TP-Link or download artifacts)
+        if: always()
+        run: |
+          mkdir -p results/phase0b
+          cp out/is_top.txt out/driver_candidates.txt results/phase0b/ || true
+          cp out/inv/inventory.md results/phase0b/inventory.md || true
+          cp -r out/drv results/phase0b/drv || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results
+          git commit -m "ci: phase0b driver extraction results" || echo "nothing to commit"
+          git pull --rebase origin main
+          git push origin HEAD:main
