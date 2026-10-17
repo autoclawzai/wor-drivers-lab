@@ -19,3 +19,9 @@ Download the result with:
 ```bash
 gh run download -R autoclawzai/wor-drivers-lab -n phase0-inventory
 ```
+
+## Reading CI results from the sandbox
+Artifact and log downloads are blocked by the sandbox proxy (HTTP 403), so workflows commit their readable outputs to `results/<phase>/` and Claude reads them after `git pull`.
+```bash
+git fetch origin main && git merge --ff-only origin/main
+```

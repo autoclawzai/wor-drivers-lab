@@ -5,6 +5,8 @@ on:
     paths:
       - scripts/**
       - .github/workflows/phase0-inventory.yml
+permissions:
+  contents: write
 jobs:
   inventory:
     runs-on: ubuntu-latest
@@ -25,3 +27,20 @@ jobs:
         with:
           name: phase0-inventory
           path: out/
+      - name: Commit results (readable without artifact download)
+        run: |
+          mkdir -p results/phase0
+          cp out/SUMMARY.md out/zip_sha256.txt out/aircrack_files.txt out/aircrack_tplink_refs.txt results/phase0/
+          cp out/win/inventory.md results/phase0/win_inventory.md
+          cp out/linux/inventory.md results/phase0/linux_inventory.md
+          python3 - <<'PY'
+          import json
+          d = json.load(open("out/win/inventory.json"))
+          json.dump({"inf": d["inf"], "pe": d["pe"]}, open("results/phase0/win_inventory.json", "w"), indent=1)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results
+          git commit -m "ci: phase0 inventory results" || echo "nothing to commit"
+          git pull --rebase origin main
+          git push origin HEAD:main
