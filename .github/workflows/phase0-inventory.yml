@@ -1,0 +1,27 @@
+name: phase0-inventory
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/**
+      - .github/workflows/phase0-inventory.yml
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full unzip
+          python3 -m pip install --quiet pefile
+      - name: Run inventory
+        run: bash scripts/phase0_inventory.sh
+      - name: Job summary
+        if: always()
+        run: cat out/SUMMARY.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase0-inventory
+          path: out/
