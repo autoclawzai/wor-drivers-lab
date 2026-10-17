@@ -1,0 +1,38 @@
+name: fetch-vendor
+# One job: download official TP-Link drivers (the sandbox cannot reach static.tp-link.com) and commit them to the repo.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/fetch-vendor.yml
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and commit each file separately
+        run: |
+          set -euo pipefail
+          mkdir -p vendor/tplink
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          get() {
+            name="$1"; url="$2"
+            curl -fL -A "Mozilla/5.0" -o "vendor/tplink/$name" "$url"
+            unzip -tq "vendor/tplink/$name"
+            git add "vendor/tplink/$name"
+            git commit -q -m "vendor: $name"
+            git pull -q --rebase origin main
+            git push -q origin HEAD:main
+          }
+          get "TL-WN722N_V3_180807_Win.zip"       "https://static.tp-link.com/2018/201808/20180820/TL-WN722N(EUUSES)_V3_180807_Win.zip"
+          get "TL-WN722N_V3_170726_Wins.zip"      "https://static.tp-link.com/TL-WN722N(EU_US_ES)_V2_V3_170726_Wins.zip"
+          get "TL-WN722N_V3_180510_Linux_beta.zip" "https://static.tp-link.com/2018/201805/20180521/TP-Link_Driver_Linux_series7_beta.zip"
+          get "TL-WN722N_Linux_180306.zip"        "https://static.tp-link.com/2018/201803/20180306/TL-WN722N_Linux.zip"
+          (cd vendor/tplink && sha256sum *.zip > SHA256SUMS.txt)
+          git add vendor/tplink/SHA256SUMS.txt
+          git commit -q -m "vendor: checksums" || true
+          git pull -q --rebase origin main
+          git push -q origin HEAD:main
