@@ -1,0 +1,4 @@
+[2026-10-17T21:00:35] zip sha256 A9EF7322B8A544BC343DC823CD2ABBBCBC8B863488036D5F70AA5C14260E4A29
+[2026-10-17T21:00:37] inner exe: D:\a\wor-drivers-lab\wor-drivers-lab\work\outer\$PLUGINSDIR\Driver Files\Setup.exe size 22258837
+[2026-10-17T21:00:38] attempt1 exit 0
+[2026-10-17T21:01:04] attempt2 exit 0

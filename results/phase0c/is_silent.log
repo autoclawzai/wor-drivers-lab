@@ -1,0 +1,10 @@
+[InstallShield Silent]
+Version=v7.00
+File=Log File
+[ResponseResult]
+ResultCode=0
+[Application]
+Name=TP-Link Wireless Adapter WPS Tool and Driver
+Version=1.3.1
+Company=TP-Link
+Lang=0009
