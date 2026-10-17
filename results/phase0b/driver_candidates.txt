@@ -1,0 +1,3 @@
+work/win/plugins/soui-sys-resource.dll
+work/win/plugins/setupUi.dll
+work/win/outer/$PLUGINSDIR/WPS Tool/layout.bin
