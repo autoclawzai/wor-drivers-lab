@@ -1,0 +1,4 @@
+work/aircrack/os_dep/linux/usb_intf.c
+work/aircrack/os_dep/linux/usb_intf.c:156:	{USB_DEVICE(0x2357, 0x010c), .driver_info = RTL8188E}, /* TP-WL722n v2/v3/v4 */
+work/aircrack/include/rtl8814a_spec.h:88:#define REG_TRXDMA_CTRL_8814A			0x010C
+work/aircrack/include/hal_com_reg.h:119:#define REG_TRXDMA_CTRL				0x010C
