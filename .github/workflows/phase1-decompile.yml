@@ -1,0 +1,95 @@
+name: phase1-decompile
+# Heavy job: REA (MCP/CLI) + Ghidra 12.1.4 headless on the official rtwlanu.sys.
+# Results are committed to results/phase1/ because the sandbox cannot download artifacts or logs.
+on:
+  workflow_dispatch:
+    inputs:
+      driver:
+        description: "Path of the binary to analyze"
+        default: "vendor/extracted/win180807/Driver_RTL8188EUS_Win10_64/rtwlanu.sys"
+      tag:
+        description: "Result folder name under results/phase1/"
+        default: "rtwlanu_x64"
+  push:
+    paths:
+      - .github/workflows/phase1-decompile.yml
+      - scripts/ghidra/**
+permissions:
+  contents: write
+jobs:
+  decompile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      DRIVER: ${{ github.event.inputs.driver || 'vendor/extracted/win180807/Driver_RTL8188EUS_Win10_64/rtwlanu.sys' }}
+      TAG: ${{ github.event.inputs.tag || 'rtwlanu_x64' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install REA
+        run: |
+          mkdir -p out
+          npm install --global rea-agents 2>&1 | tail -3
+          rea --version 2>&1 | tee out/rea_version.txt || true
+      - name: Install Ghidra 12.1.4 (exact version REA supports)
+        run: |
+          set -euo pipefail
+          url=$(gh api repos/NationalSecurityAgency/ghidra/releases/tags/Ghidra_12.1.4_build --jq '.assets[] | select(.name|test("PUBLIC.*zip$")) | .browser_download_url' | head -1)
+          echo "ghidra url: $url" | tee out/ghidra_url.txt
+          curl -fL -o ghidra.zip "$url"
+          unzip -q ghidra.zip -d /opt
+          ls -d /opt/ghidra_* | tee -a out/ghidra_url.txt
+          GH_DIR=$(ls -d /opt/ghidra_*PUBLIC | head -1)
+          echo "GHIDRA_INSTALL_DIR=$GH_DIR" >> "$GITHUB_ENV"
+          sed -i 's/^MAXMEM=.*/MAXMEM=10G/' "$GH_DIR/support/launch.properties"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+      - name: REA doctor / providers
+        continue-on-error: true
+        run: |
+          export REA_ANALYSIS_PROVIDER=ghidra
+          rea doctor --json     > out/rea_doctor.json     2> out/rea_doctor.err     || true
+          rea providers --json  > out/rea_providers.json  2> out/rea_providers.err  || true
+          rea capabilities --json > out/rea_capabilities.json 2> out/rea_capabilities.err || true
+      - name: REA analyze + overview (best effort)
+        continue-on-error: true
+        run: |
+          export REA_ANALYSIS_PROVIDER=ghidra
+          P="$GITHUB_WORKSPACE/$DRIVER"
+          timeout 90m rea analyze "$P" --provider ghidra --json --snapshot "$GITHUB_WORKSPACE/out/rea_snapshot.json" > out/rea_analyze.json 2> out/rea_analyze.err || echo "rea analyze exit $?" >> out/rea_notes.txt
+          timeout 30m rea search "$P" "Firmware" --provider ghidra --json > out/rea_search_firmware.json 2> out/rea_search_firmware.err || true
+      - name: Ghidra headless import + analysis + full decompile export
+        run: |
+          set -o pipefail
+          mkdir -p out/ghidra proj
+          "$GHIDRA_INSTALL_DIR/support/analyzeHeadless" proj p1 \
+            -import "$GITHUB_WORKSPACE/$DRIVER" \
+            -scriptPath "$GITHUB_WORKSPACE/scripts/ghidra" \
+            -postScript DecompileAll.java "$GITHUB_WORKSPACE/out/ghidra" \
+            -deleteProject 2>&1 | tee out/analyzeHeadless.log | tail -n 40
+      - name: Commit results
+        if: always()
+        run: |
+          D="results/phase1/$TAG"
+          mkdir -p "$D"
+          cp out/*.json out/*.txt out/*.err "$D"/ 2>/dev/null || true
+          tail -n 400 out/analyzeHeadless.log > "$D/analyzeHeadless_tail.log" 2>/dev/null || true
+          for f in functions.csv callgraph.csv strings.csv externals.csv segments.csv; do
+            [ -f "out/ghidra/$f" ] && gzip -9 -c "out/ghidra/$f" > "$D/$f.gz"
+          done
+          if [ -f out/ghidra/decompiled.c ]; then
+            ls -l out/ghidra/decompiled.c
+            gzip -9 -c out/ghidra/decompiled.c | split -b 40m -d - "$D/decompiled.c.gz.part"
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results
+          git commit -m "ci: phase1 decompile results ($TAG)" || echo "nothing to commit"
+          git pull --rebase origin main
+          git push origin HEAD:main

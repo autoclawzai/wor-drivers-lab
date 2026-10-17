@@ -36,3 +36,19 @@ python3 scripts/extract_installshield.py 'outer/$PLUGINSDIR/Driver Files/Setup.e
 unshield -d drv x disk1/data1.cab                               # -> Driver_RTL8188EUS_Win10_64/rtwlanu.sys, netrtwlanu.inf ...
 ```
 Result committed in `vendor/extracted/win180807/` (Win10 x64 + x86 sets only).
+
+## Phase 1 - full decompilation (CI, heavy)
+Workflow `phase1-decompile` (manual inputs: `driver`, `tag`). Steps it runs:
+```bash
+npm install --global rea-agents                       # REA CLI/MCP (Node 22)
+# Ghidra 12.1.4 (exact release REA supports) + JDK 21 (temurin)
+export GHIDRA_INSTALL_DIR=/opt/ghidra_12.1.4_PUBLIC REA_ANALYSIS_PROVIDER=ghidra
+rea doctor --json ; rea providers --json
+rea analyze <rtwlanu.sys> --provider ghidra --json --snapshot out/rea_snapshot.json
+rea search  <rtwlanu.sys> "Firmware" --provider ghidra --json
+$GHIDRA_INSTALL_DIR/support/analyzeHeadless proj p1 -import <rtwlanu.sys> \
+   -scriptPath scripts/ghidra -postScript DecompileAll.java out/ghidra -deleteProject
+```
+Outputs (committed to `results/phase1/<tag>/`): `decompiled.c.gz.part*` (cat + gunzip), `functions.csv.gz`, `callgraph.csv.gz`, `strings.csv.gz`, `externals.csv.gz`, `segments.csv.gz`, REA json outputs, log tail.
+Rebuild locally: `cat decompiled.c.gz.part* | gunzip > decompiled.c`.
+Note: REA's Ghidra provider documents only non-DLL x86-64 PE applications, so a `.sys` may be rejected by `rea analyze`; the direct Ghidra export is the fallback and the outcome is recorded in the notes.
