@@ -25,3 +25,14 @@ Artifact and log downloads are blocked by the sandbox proxy (HTTP 403), so workf
 ```bash
 git fetch origin main && git merge --ff-only origin/main
 ```
+
+## Phase 0 (done) - get the official driver out of the TP-Link package (local sandbox)
+Sandbox cannot reach static.tp-link.com, so CI workflow `fetch-vendor` downloads the zips and commits them to `vendor/tplink/` (checksums in `SHA256SUMS.txt`).
+```bash
+apt-get install -y p7zip-full unshield cabextract
+unzip -q vendor/tplink/TL-WN722N_V3_180807_Win.zip -d zip
+7z x -y -oouter zip/Setup.exe                                   # NSIS outer installer
+python3 scripts/extract_installshield.py 'outer/$PLUGINSDIR/Driver Files/Setup.exe' disk1   # InstallShield overlay -> data1.cab/.hdr, data2.cab, setup.inx
+unshield -d drv x disk1/data1.cab                               # -> Driver_RTL8188EUS_Win10_64/rtwlanu.sys, netrtwlanu.inf ...
+```
+Result committed in `vendor/extracted/win180807/` (Win10 x64 + x86 sets only).
