@@ -1,0 +1,30 @@
+name: phase0c-extract-win
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/phase0c_extract.ps1
+      - .github/workflows/phase0c-extract-win.yml
+permissions:
+  contents: write
+jobs:
+  extract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract driver on Windows
+        shell: pwsh
+        run: ./scripts/phase0c_extract.ps1
+      - name: Commit results (sandbox cannot download artifacts)
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p results/phase0c
+          cp out/extract_log.txt out/extract_tree.txt out/is_silent.log results/phase0c/ 2>/dev/null || true
+          cp -r out/drv results/phase0c/ 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results
+          git commit -m "ci: phase0c windows extraction results" || echo "nothing to commit"
+          git pull --rebase origin main
+          git push origin HEAD:main
